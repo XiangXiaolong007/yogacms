@@ -2,12 +2,11 @@
   <div class="login">
     <div class="login_img">
       <transition-group tag="ul" name="img">
-        <li v-for="(image,index) in imgs" :key="index" v-show="index===mark">
+        <li v-for="(image,index) in imgs" :key="index" v-show="index === mark">
           <div class="divImg" :style="{backgroundImage: 'url(' + image + ')'}"></div>
         </li>
       </transition-group>
     </div>
-
     <transition name="fade">
       <div class="login-content" v-if="hide">
         <div class="logo">
@@ -17,86 +16,161 @@
         <div class="form-login">
           <!-- 登录界面 -->
           <h3 class="form-title">请登录</h3>
-          <div class="form-group">
-            <el-input prefix-icon="fa fa-user" v-model="user.username" placeholder="用户名" clearable></el-input>
-          </div>
-          <div class="form-group">
-            <el-input
-              type="password"
-              prefix-icon="fa fa-lock"
-              v-model="user.password"
-              placeholder="密码"
-              clearable
-            ></el-input>
-          </div>
-          <div class="form-group">
-            <el-checkbox v-model="user.rememberMe">记住我</el-checkbox>
-          </div>
-          <div class="form-actions">
-            <el-button type="primary" size="small" @click="login">
-              登录
-              <i class="m-icon-swapright m-icon-white"></i>
-            </el-button>
-          </div>
+          <r-form :children="children" :defaultModel="defaultModel" :toolbar="toolbar"></r-form>
         </div>
       </div>
     </transition>
   </div>
 </template>
-<script>
-import bg1 from "@/assets/images/bg/1.jpg";
-import bg2 from "@/assets/images/bg/2.jpg";
-import bg3 from "@/assets/images/bg/3.jpg";
-import bg4 from "@/assets/images/bg/4.jpg";
+<script lang="ts">
 import qs from "qs";
+import { Component, Prop, Vue, Mixins } from "vue-property-decorator";
+import RForm from "@/components/Form/Form.vue";
+import { isValidUsername } from "@/utils/validate";
+import { FormModel } from "@/components/Interface";
 
-export default {
-  data() {
-    return {
-      mark: 0,
-      imgs: [bg1, bg2, bg3, bg4],
-      hide: false,
-      user: {
-        username: "admin",
-        password: "wtfhhuaectk",
-        rememberMe: true
-      }
-    };
-  },
-  created() {
-    this.play();
-  },
-  mounted() {
-    this.hide = true;
-  },
-  methods: {
-    autoPlay() {
-      if (this.mark < this.imgs.length - 1) {
-        this.mark++;
-      } else {
-        this.mark = 0;
-      }
+const bg1 = require("@/assets/images/bg/1.jpg");
+const bg2 = require("@/assets/images/bg/2.jpg");
+const bg3 = require("@/assets/images/bg/3.jpg");
+const bg4 = require("@/assets/images/bg/4.jpg");
+
+@Component({
+  components: {
+    RForm
+  }
+})
+export default class RVLogin extends Mixins(Vue) {
+  private validateUsername = (rule: any, value: string, callback: Function) => {
+    if (!isValidUsername(value)) {
+      callback(new Error("Please Enter the correct user name"));
+    } else {
+      callback();
+    }
+  };
+  private validatePassword = (rule: any, value: string, callback: Function) => {
+    if (value.length < 6) {
+      callback(new Error("The password can not be less than 6 digits"));
+    } else {
+      callback();
+    }
+  };
+
+  imgs = [bg1, bg2, bg3, bg4];
+  mark = 0;
+  hide = false;
+  user = {
+    username: "admin",
+    password: "wtfhhuaectk",
+    rememberMe: true
+  };
+
+  defaultModel = {
+    username: "admin",
+    password: "wtfhhuaectk",
+    placaholderText: "请输入用户名",
+    placaholderPass: "请输入密码"
+  };
+  children = [
+    {
+      name: "username",
+      widget: "input",
+      placeholder: "请输入用户名",
+      prefixIcon: ["fa", "fa-user"],
+      validate: [
+        {
+          required: true,
+          trigger: "blur"
+        },
+        {
+          validator: this.validateUsername,
+          trigger: "blur"
+        }
+      ]
     },
-    play() {
-      setInterval(this.autoPlay, 2000);
-    },
-    login() {
-      let params = {
-        username: this.user.username,
-        password: this.user.password
-      };
-      this.axios
-        .post("/api/login/login", qs.stringify(params), {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
-          }
-        })
-        .then(res => {
-          console.log(res);
-        });
+    {
+      name: "password",
+      widget: "password",
+      placeholder: "请输入密码",
+      prefixIcon: ["fa", "fa-lock"],
+      validate: [
+        {
+          required: true,
+          trigger: "blur"
+        },
+        { validator: this.validatePassword, trigger: "blur" }
+      ]
+    }
+  ];
+  toolbar = [
+    {
+      type: "primary",
+      text: "登录",
+      iconClass: ["m-icon-swapright", "m-icon-white"],
+      action: (model: FormModel) => {
+        console.dir(model);
+      }
+    }
+  ];
+
+  autoPlay() {
+    if (this.mark < this.imgs.length - 1) {
+      this.mark++;
+    } else {
+      this.mark = 0;
     }
   }
-};
+  play() {
+    setInterval(this.autoPlay, 2000);
+  }
+  login() {
+    let params = {
+      username: this.user.username,
+      password: this.user.password
+    };
+    this.axios
+      .post("/api/login/login", qs.stringify(params), {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+        }
+      })
+      .then(res => {
+        let _data = res.data.data;
+        if (res.data.errno == 0) {
+          this.$message({
+            message: "登录成功",
+            type: "success"
+          });
+
+          // user name
+          localStorage.setItem("DailyYoga.NADMIN", _data.n_admin);
+          // auth required
+          localStorage.setItem("DailyYoga.SADMIN", _data.s_admin);
+          localStorage.setItem("DailyYoga.UADMIN", _data.u_admin);
+
+          this.$router.push({
+            path: "/"
+          });
+        } else {
+          this.$message({
+            message: `Error No.${res.data.errno} Error Messages: ${res.data.errmsg}`,
+            type: "error"
+          });
+        }
+      })
+      .catch(err => {
+        this.$message({
+          message: "登录出错",
+          type: "error"
+        });
+      });
+  }
+  created() {
+    this.play();
+  }
+  mounted() {
+    this.hide = true;
+  }
+}
 </script>
 <style lang="scss">
 .login,

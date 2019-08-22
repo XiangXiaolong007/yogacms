@@ -1,6 +1,7 @@
 const path = require("path");
 const isDev = process.env.NODE_ENV === "development";
 const isTest = process.env.VUE_APP_BUILD_TYPE === "test";
+const webpack = require("webpack");
 
 function resolve(dir) {
   return path.join(__dirname, dir);
@@ -9,9 +10,15 @@ function resolve(dir) {
 module.exports = {
   chainWebpack: config => {
     config.resolve.alias.set("@", resolve("src"));
+    config.plugin("provide").use(webpack.ProvidePlugin, [
+      {
+        _: "lodash"
+      }
+    ]);
   },
   devServer: {
     // baseUrl: "/",
+    port: 8081,
     overlay: {
       warnings: false,
       errors: true

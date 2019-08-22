@@ -1,15 +1,25 @@
 import Vue from "vue";
 import Router from "vue-router";
-import Login from "./views/Login.vue";
 
 Vue.use(Router);
+
+// 按需加载路由
+function loadView(view: string) {
+  return () =>
+    import(/* webpackChunkName: "view-[request]" */ `@/views/${view}.vue`);
+}
 
 export default new Router({
   routes: [
     {
-      path: "/",
+      path: "/login",
       name: "login",
-      component: Login
+      component: loadView("Login")
+    },
+    {
+      path: "/",
+      name: "home",
+      component: loadView("Home")
     }
   ]
 });
